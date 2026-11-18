@@ -80,7 +80,10 @@ function sanitizeAnalysisReport(raw: unknown, normalizedIndustry: string): Analy
           return {
             name,
             description,
-            coreFeatures: coreFeatures.length > 0 ? coreFeatures : ["Automated Workflow Engine", "Real-Time Analytics"],
+            coreFeatures:
+              coreFeatures.length > 0
+                ? coreFeatures
+                : ["Automated Workflow Engine", "Real-Time Analytics"],
           };
         })
         .filter((item): item is ProductConcept => item !== null)
@@ -108,211 +111,265 @@ function sanitizeAnalysisReport(raw: unknown, normalizedIndustry: string): Analy
   };
 }
 
-function buildAdaptiveFallbackReport(industry: string): AnalysisReport {
-  const clean = industry.charAt(0).toUpperCase() + industry.slice(1);
+// Dynamically classifies ANY industry into operational archetypes & generates tailored intelligence
+function buildSmartAdaptiveReport(industry: string): AnalysisReport {
+  const clean = industry
+    .split(" ")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
   const lower = industry.toLowerCase();
 
   const hash = lower.split("").reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
   const score = 81 + (hash % 15);
 
-  // 1. Retail, Fashion & E-Commerce
-  if (/(clothing|fashion|boutique|retail|store|apparel|shop|ecommerce|e-commerce|shoes|jewelry)/.test(lower)) {
-    return {
-      industry: clean,
-      opportunityScore: score,
-      topCompetitors: ["Shopify", "Square Retail", "WooCommerce", "Lightspeed POS"],
-      customerPainPoints: [
-        `High inventory holding costs and dead stock on slow-moving seasonal apparel`,
-        `Fierce margin compression from fast-fashion giants and high customer acquisition costs (CAC)`,
-        `Disconnected online inventory and physical brick-and-mortar stock leading to fulfillment errors`,
+  const archetypes: Array<{
+    name: string;
+    pattern: RegExp;
+    competitors: string[];
+    painPoints: (ind: string) => string[];
+    gap: (ind: string) => string;
+    productPrefix: string;
+    productDesc: (ind: string) => string;
+    features: string[];
+    models: string[];
+  }> = [
+    {
+      name: "Retail & E-Commerce",
+      pattern: /(clothing|fashion|boutique|retail|store|apparel|shop|ecommerce|e-commerce|shoes|jewelry|brand|merch)/,
+      competitors: ["Shopify", "Square Retail", "Lightspeed POS", "Klaviyo"],
+      painPoints: (ind) => [
+        `High inventory holding costs and dead stock on slow-moving seasonal ${ind} items`,
+        `Margin compression from rising customer acquisition costs (CAC) and marketplace fees`,
+        `Disconnected online storefront inventory and physical stock causing fulfillment delays`,
       ],
-      marketGaps: [
-        `Hyper-local omnichannel curation engine that helps independent boutique owners predict sizing trends and automate social-to-cart purchasing.`,
+      gap: (ind) =>
+        `Omnichannel demand-forecasting and social-to-cart automation tailored for independent ${ind} operators.`,
+      productPrefix: "ShelfSync",
+      productDesc: (ind) =>
+        `An AI inventory predictor and automated social checkout engine built for independent ${ind} brands to prevent dead stock.`,
+      features: ["AI SKU & Demand Forecasting", "Unified Online/In-Store Inventory", "Automated Social DM Checkout"],
+      models: ["Tiered Monthly SaaS ($59–$129/month)", "0.5% GMV volume fee"],
+    },
+    {
+      name: "Trades & Field Services",
+      pattern: /(electric|plumb|hvac|roof|landscap|construct|clean|repair|contract|auto|mechanic|build|pest|solar)/,
+      competitors: ["ServiceTitan", "Jobber", "Housecall Pro", "FieldPulse"],
+      painPoints: (ind) => [
+        `On-site ${ind} technicians lose billable hours manually writing estimates and chasing invoice approvals`,
+        `Missed calls during active jobs cause immediate lead loss to faster-responding competitors`,
+        `Enterprise dispatch suites are overly complex and expensive for small 1–15 person crews`,
       ],
-      productOpportunities: [
-        {
-          name: `VogueSync ${clean} AI`,
-          description: `An automated inventory forecasting and social commerce tool built for independent boutique owners to optimize seasonal stock and reduce markdowns.`,
-          coreFeatures: [
-            "AI-Driven Trend & Sizing Predictor",
-            "Unified Online/In-Store POS Inventory Sync",
-            "Automated Instagram-to-Cart DM Checkout",
-          ],
-        },
-      ],
-      businessModels: [
-        "Tiered Monthly SaaS ($59–$129/month)",
-        "0.5% Gross Merchandise Value (GMV) volume fee",
-      ],
-      _meta: { source: "offline-fallback", modelUsed: "local-sector-engine", archetype: "Retail & E-Commerce" },
-    };
-  }
-
-  // 2. Trades & Field Services
-  if (/(electric|plumb|hvac|roof|landscap|construct|clean|repair|contract|auto|mechanic)/.test(lower)) {
-    return {
-      industry: clean,
-      opportunityScore: score,
-      topCompetitors: ["ServiceTitan", "Jobber", "Housecall Pro", "FieldPulse"],
-      customerPainPoints: [
-        `On-site technicians lose billable hours manually writing estimates and chasing invoice approvals`,
-        `Missed phone calls during active jobs result in immediate lead loss to faster-responding competitors`,
-        `Enterprise dispatch platforms are overly complex and expensive for small independent crews`,
-      ],
-      marketGaps: [
-        `Voice-to-estimate mobile co-pilot tailored for small teams that generates itemized quotes from job-site photos in under 30 seconds.`,
-      ],
-      productOpportunities: [
-        {
-          name: `FieldSnap ${clean} AI`,
-          description: `A mobile intake and quoting engine built for independent operators to turn job-site conditions into signed estimates on the spot.`,
-          coreFeatures: [
-            "Photo & Voice-to-Quote Generator",
-            "Automated Missed-Call SMS Booking",
-            "One-Tap Deposit & Invoice Collection",
-          ],
-        },
-      ],
-      businessModels: [
-        "Flat-rate SMB SaaS ($79/month per crew)",
-        "1.5% instant payout processing fee",
-      ],
-      _meta: { source: "offline-fallback", modelUsed: "local-sector-engine", archetype: "Field Services & Trades" },
-    };
-  }
-
-  // 3. Food & Hospitality
-  if (/(coffee|cafe|restaurant|bakery|food|bar|cater|pizza|kitchen|hospitality)/.test(lower)) {
-    return {
-      industry: clean,
-      opportunityScore: score,
-      topCompetitors: ["Toast", "Square for Restaurants", "Lightspeed", "7shifts"],
-      customerPainPoints: [
-        `Unpredictable ingredient waste and over-ordering due to disconnected POS and inventory data`,
-        `High staff turnover makes training new hires on recipes and peak-hour workflows slow`,
+      gap: (ind) =>
+        `Voice-and-photo-to-estimate mobile co-pilot for ${ind} crews that generates itemized quotes on-site in 30 seconds.`,
+      productPrefix: "FieldSnap",
+      productDesc: (ind) =>
+        `A zero-setup mobile quoting and missed-call capture engine built for independent ${ind} operators.`,
+      features: ["Photo & Voice-to-Quote Generator", "Automated Missed-Call SMS Booking", "One-Tap Deposit Collection"],
+      models: ["Flat-rate SMB SaaS ($79/month per crew)", "1.5% instant payout fee"],
+    },
+    {
+      name: "Food & Hospitality",
+      pattern: /(coffee|cafe|restaurant|bakery|food|bar|cater|pizza|kitchen|hospitality|hotel|brewery|diner)/,
+      competitors: ["Toast", "Square for Restaurants", "Lightspeed", "7shifts"],
+      painPoints: (ind) => [
+        `Unpredictable perishable waste and over-ordering due to disconnected POS and supplier data in ${ind}`,
+        `High staff turnover slows down onboarding for recipes, prep standards, and peak-hour workflows`,
         `Third-party delivery apps erode net margins by 15–30% without capturing repeat customer data`,
       ],
-      marketGaps: [
-        `Predictive micro-inventory and prep-forecasting layer connecting directly to existing POS data for independent operators.`,
-      ],
-      productOpportunities: [
-        {
-          name: `PantryPulse for ${clean}`,
-          description: `An AI demand-forecasting and automated supplier ordering tool that cuts perishable waste by analyzing local weather and sales velocity.`,
-          coreFeatures: [
-            "POS-Synced Daily Prep & Par Calculator",
-            "Automated Supplier Reorder Alerts",
-            "Direct SMS VIP Loyalty & Pre-Order Loop",
-          ],
-        },
-      ],
-      businessModels: [
-        "Monthly location subscription ($89/location)",
-        "Supplier marketplace rebate share",
-      ],
-      _meta: { source: "offline-fallback", modelUsed: "local-sector-engine", archetype: "Food & Hospitality" },
-    };
-  }
-
-  // 4. Health, Fitness & Appointments
-  if (/(dental|clinic|gym|fitness|physio|salon|barber|spa|health|vet|wellness)/.test(lower)) {
-    return {
-      industry: clean,
-      opportunityScore: score,
-      topCompetitors: ["Mindbody", "Jane App", "Fresha", "Vagaro"],
-      customerPainPoints: [
-        `Last-minute appointment cancellations and no-shows leave high-margin daily slots unfilled`,
-        `Front-desk staff spend hours on repetitive intake forms and rebooking calls`,
+      gap: (ind) =>
+        `Predictive micro-inventory and prep-forecasting layer synced directly with existing POS systems for ${ind}.`,
+      productPrefix: "PantryPulse",
+      productDesc: (ind) =>
+        `An AI demand-forecasting and automated supplier reordering tool that cuts waste for ${ind} operators.`,
+      features: ["POS-Synced Daily Prep Calculator", "Automated Supplier Reorder Alerts", "Direct SMS VIP Loyalty Loop"],
+      models: ["Monthly location subscription ($89/location)", "Supplier marketplace rebate share"],
+    },
+    {
+      name: "Health, Wellness & Appointments",
+      pattern: /(dental|clinic|gym|fitness|physio|salon|barber|spa|health|vet|wellness|therapy|medical|yoga)/,
+      competitors: ["Mindbody", "Jane App", "Fresha", "Vagaro"],
+      painPoints: (ind) => [
+        `Last-minute appointment cancellations leave high-margin daily ${ind} slots unfilled`,
+        `Front-desk staff spend hours on repetitive intake forms, compliance checks, and rebooking calls`,
         `Client drop-off after initial visits due to lack of personalized post-session follow-up`,
       ],
-      marketGaps: [
-        `Autonomous waitlist-backfill and retention agent that automatically fills cancelled slots via SMS within minutes.`,
+      gap: (ind) =>
+        `Autonomous waitlist-backfill and retention agent for ${ind} businesses that fills cancelled slots via SMS within minutes.`,
+      productPrefix: "SlotFill",
+      productDesc: (ind) =>
+        `An automated schedule-recovery and client retention engine built for appointment-driven ${ind} studios.`,
+      features: ["Instant Cancellation Waitlist Backfill", "Pre-Visit Digital Intake & Triage", "Automated Rebooking Cadence"],
+      models: ["Base SaaS ($69/month) + per-recovered-slot fee", "Multi-practitioner tier pricing"],
+    },
+    {
+      name: "Sports, Clubs & Athletics",
+      pattern: /(football|soccer|basketball|rugby|tennis|cricket|sport|coach|league|club|academy|athletic|team|golf|swim)/,
+      competitors: ["Hudl", "TeamSnap", "Catapult Sports", "PlayMetrics"],
+      painPoints: (ind) => [
+        `Grassroots and amateur ${ind} coaches spend hours manually clipping game film and tagging stats`,
+        `Fragmented parent/player communication, roster availability, and dues collection across group chats`,
+        `Pro-grade GPS and tactical analytics tools are priced far out of reach for local ${ind} clubs`,
       ],
-      productOpportunities: [
-        {
-          name: `SlotFill ${clean} AI`,
-          description: `An automated schedule-recovery and client retention engine that detects cancellations and triggers targeted SMS offers.`,
-          coreFeatures: [
-            "Instant Cancellation Waitlist Backfill",
-            "Pre-Visit Digital Intake & Triage",
-            "Automated Rebooking Cadence Engine",
-          ],
-        },
+      gap: (ind) =>
+        `Smartphone-only computer vision scouting and automated highlight tagging for grassroots ${ind} clubs.`,
+      productPrefix: "PitchVision",
+      productDesc: (ind) =>
+        `A sideline smartphone video analyzer that tracks positioning and clips recruitable highlights for ${ind} teams.`,
+      features: ["Automated Smartphone Match Tagging", "Recruiting Highlight Reel Generator", "Unified Roster & Dues Hub"],
+      models: ["Annual team license ($299/season)", "Freemium player recruiting upgrades ($15/month)"],
+    },
+    {
+      name: "Education, Tutoring & EdTech",
+      pattern: /(school|tutor|edu|course|teach|academy|training|learn|student|university|bootcamp|coaching)/,
+      competitors: ["Coursera", "Teachable", "Kajabi", "Canvas LMS"],
+      painPoints: (ind) => [
+        `High student drop-off rates due to static, one-size-fits-all ${ind} curriculum pacing`,
+        `Instructors spend excessive time grading repetitive assignments and answering identical questions`,
+        `Difficulty proving measurable skill mastery and ROI to learners or parents`,
       ],
-      businessModels: [
-        "Base SaaS ($69/month) + performance fee per recovered slot",
-        "Multi-practitioner tier pricing",
+      gap: (ind) =>
+        `Adaptive AI study companion that dynamically adjusts ${ind} practice exercises based on real-time error patterns.`,
+      productPrefix: "MasteryLoop",
+      productDesc: (ind) =>
+        `An adaptive learning and automated feedback co-pilot tailored for ${ind} educators and cohort programs.`,
+      features: ["Real-Time Knowledge Gap Diagnostics", "Automated Personalized Practice Drills", "Student Progress Analytics"],
+      models: ["Per-seat educator SaaS ($39/month)", "Institutional cohort licensing"],
+    },
+    {
+      name: "Real Estate, Property & Architecture",
+      pattern: /(real estate|property|realtor|rental|airbnb|architect|interior|mortgage|housing|landlord|broker)/,
+      competitors: ["Zillow Premier", "AppFolio", "Buildium", "Matterport"],
+      painPoints: (ind) => [
+        `Slow lead qualification and manual follow-up cause ${ind} agents to lose high-intent prospects`,
+        `Fragmented document collection, inspection scheduling, and compliance checklists slow down closings`,
+        `Property owners lack real-time visibility into maintenance costs and market yield benchmarks`,
       ],
-      _meta: { source: "offline-fallback", modelUsed: "local-sector-engine", archetype: "Health, Wellness & Appointments" },
-    };
-  }
+      gap: (ind) =>
+        `Instant AI buyer/tenant qualification and automated transaction coordinator built for independent ${ind} teams.`,
+      productPrefix: "ClosingOS",
+      productDesc: (ind) =>
+        `An automated lead-to-close workflow assistant that qualifies inquiries and tracks milestones for ${ind} professionals.`,
+      features: ["24/7 AI Inquiry Qualification", "Automated Document & Milestone Tracker", "Instant Comp & Yield Estimator"],
+      models: ["Monthly agent subscription ($99/month)", "Per-transaction closing fee"],
+    },
+    {
+      name: "Logistics, Supply Chain & Manufacturing",
+      pattern: /(logistics|freight|shipping|warehouse|supply|manufactur|delivery|trucking|fleet|wholesale|import)/,
+      competitors: ["Flexport", "Samsara", "ShipBob", "Project44"],
+      painPoints: (ind) => [
+        `Blind spots across multi-carrier shipments and supplier delays create costly ${ind} bottlenecks`,
+        `Manual bill-of-lading entry, customs paperwork, and freight quoting rely heavily on error-prone emails`,
+        `Small and mid-sized ${ind} operators lack predictive route and inventory optimization`,
+      ],
+      gap: (ind) =>
+        `Zero-integration document parser and exception-alert layer for mid-market ${ind} operators.`,
+      productPrefix: "RoutePulse",
+      productDesc: (ind) =>
+        `An AI shipment tracking and automated freight-document parser built for lean ${ind} operations teams.`,
+      features: ["Automated BOL & Invoice OCR Parsing", "Proactive Delay Exception Alerts", "Carrier Rate Benchmarking"],
+      models: ["Tiered monthly shipment volume SaaS ($199/month)", "Per-shipment API credit"],
+    },
+    {
+      name: "Creative Agencies, Media & Marketing",
+      pattern: /(agency|marketing|design|video|photo|media|content|pr|seo|creative|studio|gaming|esports|music)/,
+      competitors: ["Frame.io", "Monday.com", "ClickUp", "Canva Enterprise"],
+      painPoints: (ind) => [
+        `Endless client revision loops and scope creep erode project profit margins in ${ind}`,
+        `Disconnected asset approvals, time tracking, and invoicing create administrative bottlenecks`,
+        `Difficulty scaling personalized creative output without linearly hiring more staff`,
+      ],
+      gap: (ind) =>
+        `Client-facing approval portal with automated scope-creep detection and AI asset versioning for ${ind} studios.`,
+      productPrefix: "ScopeGuard",
+      productDesc: (ind) =>
+        `An AI project scoping, client review, and margin-protection platform built for modern ${ind} teams.`,
+      features: ["Automated Scope-Creep Alerts", "Timestamped Client Approval Portal", "Real-Time Project Margin Tracker"],
+      models: ["Per-seat studio SaaS ($49/user/month)", "White-label client portal add-on"],
+    },
+    {
+      name: "Software, FinTech & B2B Tech",
+      pattern: /(saas|software|ai|fintech|crypto|cyber|cloud|data|app|tech|startup|developer|it|consulting)/,
+      competitors: ["Linear", "Stripe", "Notion", "HubSpot"],
+      painPoints: (ind) => [
+        `Long enterprise onboarding cycles and complex configuration delay customer time-to-value in ${ind}`,
+        `Rising cloud/AI inference costs squeeze gross margins at scale`,
+        `Security compliance (SOC2, GDPR) and procurement reviews stall mid-market B2B deals`,
+      ],
+      gap: (ind) =>
+        `Self-serve onboarding copilot and automated compliance readiness layer for fast-growing ${ind} companies.`,
+      productPrefix: "LaunchStack",
+      productDesc: (ind) =>
+        `An automated customer onboarding and workflow orchestration layer designed for modern ${ind} teams.`,
+      features: ["AI-Guided Customer Onboarding Flows", "Automated Security Questionnaire Copilot", "Usage & Margin Telemetry"],
+      models: ["Usage-based PLG tier + Enterprise annual plan", "Monthly workspace subscription ($99/month)"],
+    },
+  ];
 
-  // 5. Sports, Clubs, Coaching & Athletics
-  if (/(football|soccer|basketball|rugby|tennis|cricket|sport|coach|league|club|academy|athletic|team)/.test(lower)) {
+  // Match against the 10 archetypes
+  const matched = archetypes.find((a) => a.pattern.test(lower));
+
+  if (matched) {
     return {
       industry: clean,
       opportunityScore: score,
-      topCompetitors: ["Hudl", "TeamSnap", "Catapult Sports", "PlayMetrics"],
-      customerPainPoints: [
-        `Grassroots and amateur ${lower} coaches spend hours manually clipping game film and tagging player stats`,
-        `Fragmented parent/player communication, roster availability, and registration fee collection across spreadsheets and group chats`,
-        `Pro-grade wearable GPS and tactical analytics tools are priced far out of reach for youth and semi-pro clubs`,
-      ],
-      marketGaps: [
-        `Affordable smartphone-only computer vision scouting and automated highlight tagging built specifically for grassroots ${lower} clubs and academies.`,
-      ],
+      topCompetitors: matched.competitors,
+      customerPainPoints: matched.painPoints(lower),
+      marketGaps: [matched.gap(lower)],
       productOpportunities: [
         {
-          name: `PitchVision ${clean} AI`,
-          description: `A sideline smartphone video analyzer that automatically tracks player positioning, generates tactical heatmaps, and clips recruitable highlights without expensive camera rigs.`,
-          coreFeatures: [
-            "Automated Smartphone Match Film Tagging",
-            "Player Recruiting Highlight Reel Generator",
-            "Unified Roster, Dues & Attendance Hub",
-          ],
+          name: `${matched.productPrefix} ${clean} AI`,
+          description: matched.productDesc(lower),
+          coreFeatures: matched.features,
         },
       ],
-      businessModels: [
-        "Annual club/team license ($299/team per season)",
-        "Freemium player recruiting profile upgrades ($15/month)",
-      ],
-      _meta: { source: "offline-fallback", modelUsed: "local-sector-engine", archetype: "Sports & Athletics" },
+      businessModels: matched.models,
+      _meta: {
+        source: "offline-fallback",
+        modelUsed: "smart-archetype-engine",
+        archetype: matched.name,
+      },
     };
   }
 
-  // 6. General Industry Fallback
+  // Dynamic synthesis for ultra-niche industries (e.g., "Beekeeping", "3D Printing", "Watchmaking")
+  const primaryNoun = clean.split(" ").pop() || clean;
   return {
     industry: clean,
     opportunityScore: score,
     topCompetitors: [
-      `Legacy ${clean} Platforms`,
-      `Enterprise ${clean} Software`,
-      `Traditional Regional Operators`,
+      `Shopify (Direct-to-Consumer ${primaryNoun})`,
+      `Airtable (Custom ${primaryNoun} Ops)`,
+      `Stripe (Billing & Subscriptions)`,
+      `Square (Point of Sale)`,
     ],
     customerPainPoints: [
-      `Independent ${lower} operators rely on fragmented spreadsheets, manual tracking, and disjointed software tools`,
-      `High administrative overhead and slow turnaround times on client inquiries lead to lost revenue`,
-      `Existing enterprise solutions for ${lower} are too bloated, expensive, and difficult to set up`,
+      `Specialized ${lower} operators rely on brittle spreadsheets and manual tracking because mainstream tools ignore niche workflows`,
+      `Sourcing specialized supplies, managing custom orders, and quoting accurate lead times remain slow and manual`,
+      `High customer education friction makes converting first-time ${lower} buyers expensive`,
     ],
     marketGaps: [
-      `Lightweight, AI-native workflow and automation layer purpose-built specifically for independent ${lower} businesses.`,
+      `Purpose-built vertical operating system for ${lower} businesses that combines custom quoting, inventory/material tracking, and automated client updates.`,
     ],
     productOpportunities: [
       {
-        name: `Pioneer ${clean} Co-Pilot`,
-        description: `An opinionated automation assistant that streamlines intake, scheduling, and client management for ${lower} teams.`,
+        name: `Pioneer ${primaryNoun} OS`,
+        description: `An opinionated, AI-assisted workflow and quoting platform tailored specifically to the unique operational rules of ${lower} businesses.`,
         coreFeatures: [
-          "24/7 Automated Inbound Lead Intake",
-          "AI-Powered Workflow & Task Automation",
-          "Instant Client Portal & Status Tracker",
+          `Custom ${primaryNoun} Quoting & Spec Builder`,
+          "Automated Client Status & Milestone Portal",
+          "Supplier & Materials Forecasting Engine",
         ],
       },
     ],
     businessModels: [
-      "Tiered Monthly SaaS ($49–$99/month)",
-      "Usage-based AI transaction fee",
+      "Vertical SaaS Subscription ($69–$149/month)",
+      "Embedded payment & supplier order fee (1.5%)",
     ],
-    _meta: { source: "offline-fallback", modelUsed: "local-sector-engine", archetype: "Vertical Specialized" },
+    _meta: {
+      source: "offline-fallback",
+      modelUsed: "smart-archetype-engine",
+      archetype: "Dynamic Niche Synthesis",
+    },
   };
 }
 
@@ -340,8 +397,8 @@ export async function POST(request: Request) {
   const apiKey = process.env.OPENROUTER_API_KEY;
 
   if (!apiKey) {
-    console.warn("⚠️ OPENROUTER_API_KEY missing — serving adaptive fallback.");
-    return NextResponse.json(buildAdaptiveFallbackReport(normalizedIndustry));
+    console.warn("⚠️ OPENROUTER_API_KEY missing — serving smart adaptive fallback.");
+    return NextResponse.json(buildSmartAdaptiveReport(normalizedIndustry));
   }
 
   const systemPrompt = `You are a senior venture capital analyst and market intelligence researcher.
@@ -435,6 +492,6 @@ Respond ONLY with a valid JSON object matching this exact schema (no markdown fe
     }
   }
 
-  console.warn("⚠️ All live models unavailable — serving sector-aware fallback report.");
-  return NextResponse.json(buildAdaptiveFallbackReport(normalizedIndustry));
+  console.warn("⚠️ All live models unavailable — serving smart adaptive fallback report.");
+  return NextResponse.json(buildSmartAdaptiveReport(normalizedIndustry));
 }
